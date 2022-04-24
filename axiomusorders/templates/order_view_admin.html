@@ -1,0 +1,348 @@
+{literal}
+<style type="text/css">
+  body.s-printable .axiomusForm { display: none; }
+</style>
+{/literal}
+
+<div {if !$order.axiomus_orderID}class="axiomusForm"{/if} style="background:#eef;padding:10px;margin-top:4px;display:none;" id="axiomusID">
+{if $order.axiomus_orderID}
+
+   Номер заказа Axiomus: {$order.axiomus_orderID} &nbsp;&nbsp;&nbsp; статус: <i class="icon16 loading" id="axiomusStatusIcon"></i>
+   <span id="axiomusStatus"></span>
+
+{else}
+
+<div id="axiomusFormID">
+
+  <div style="font-weight:bold;margin-bottom:5px;">
+     Данные для выгрузки в Аксиомус: &nbsp;&nbsp;&nbsp; 
+     <a href="#" onclick="if(confirm('Вы действительно хотите убрать форму выгрузки в Axiomus для данного заказа?')){ldelim}var axi = axiomusOrdersPlugin(); axi.hide();{rdelim} return false;" style="font-weight:normal;">[ Убрать выгрузку ]</a>
+  </div><br />
+
+<div style="margin-bottom:10px;">
+{if $shipping_type_courier}
+  <label><input type="radio" name="axiomus_shipping_type" value="courier" onclick="var axi = axiomusOrdersPlugin(); axi.checkSelf();" /> Доставка курьер</label> &nbsp;&nbsp;&nbsp;&nbsp;
+{/if}
+{if $shipping_type_self}
+  <label><input type="radio" name="axiomus_shipping_type" value="self" onclick="var axi = axiomusOrdersPlugin(); axi.checkSelf();" /> Самовывоз</label> &nbsp;&nbsp;&nbsp;&nbsp;
+{/if}
+{if $shipping_type_post}
+  <label><input type="radio" name="axiomus_shipping_type" value="post" onclick="var axi = axiomusOrdersPlugin(); axi.checkSelf();" /> Почта России</label> &nbsp;&nbsp;&nbsp;&nbsp;
+{/if}
+{if $shipping_type_dpd}
+  <label><input type="radio" name="axiomus_shipping_type" value="dpd" onclick="var axi = axiomusOrdersPlugin(); axi.checkSelf();" /> DPD Самовывоз</label> &nbsp;&nbsp;&nbsp;&nbsp;
+{/if}
+{if $shipping_type_dpd_courier}
+  <label><input type="radio" name="axiomus_shipping_type" value="dpd_courier" onclick="var axi = axiomusOrdersPlugin(); axi.checkSelf();" /> DPD курьер</label>
+{/if}
+</div>
+
+{if $shipping_type_self}
+<div style="margin-bottom:10px;display:none;" id="pvz_list">
+
+  {if isset($xmlError)}
+    {$xmlError}
+  {else}
+
+    Выберите пункт самовывоза:
+    {$city = $order.params['shipping_address.city']|lower}
+    {if !$pvz_select}
+      {foreach $offices as $office}{if ($city=='москва' && $office.city_name=='Москва') || ($city|lower==$office.city_name|lower)}
+        <div style="margin-bottom:5px;">
+          <label><input type="radio" name="axiomus_pvz" value="{$office.office_code}" 
+            {if $office.city_name=='Москва' && $msk_pvz_default==$office.office_code}checked{/if}
+            {if $office.city_name!='Москва' && $piter_pvz_default==$office.office_code}checked{/if} /> 
+            <b>{$office.office_name}</b></label>
+          <div style="margin-left:17px;font-size:12px;" id="axiomus_pvz_info_{$office.office_code}">{$office.office_address}. Расписание: {$office.WorkSchedule}</div>
+        </div>
+      {/if}{/foreach}
+    {else}
+      <select name="axiomus_pvz" style="max-width:500px;">
+      {foreach $offices as $office}{if ($city=='москва' && $office.city_name=='Москва') || ($city|lower==$office.city_name|lower)}
+          <option value="{$office.office_code}" 
+            {if $office.city_name=='Москва' && $msk_pvz_default==$office.office_code}selected{/if}
+            {if $office.city_name!='Москва' && $piter_pvz_default==$office.office_code}selected{/if}> 
+            {$office.office_name}. {$office.office_address}
+          </option>
+      {/if}{/foreach}
+      </select>
+      <div style="display:none;">
+      {foreach $offices as $office}{if ($city=='москва' && $office.city_name=='Москва') || ($city|lower==$office.city_name|lower)}
+        <div style="margin-left:17px;font-size:12px;" id="axiomus_pvz_info_{$office.office_code}">{$office.office_address}. Расписание: {$office.WorkSchedule}</div>
+      {/if}{/foreach}
+      </div>
+    {/if}
+  {/if}
+</div>
+{/if}
+
+{if $shipping_type_dpd}
+<div style="margin-bottom:10px;display:none;" id="pvzdpd_list">
+
+  {if isset($xmlError)}
+    {$xmlError}
+  {else}
+
+    Выберите пункт самовывоза:
+    {$city = $order.params['shipping_address.city']|lower}
+    {if !$pvz_select}
+      {foreach $offices_dpd as $office}{if $city|lower==$office.city_name|lower}
+        <div style="margin-bottom:5px;">
+          <label><input type="radio" name="axiomus_pvzdpd" value="{$office.office_code}" />
+            <b>{$office.office_name}</b></label>
+          <div style="margin-left:17px;font-size:12px;" id="axiomus_pvzdpd_info_{$office.office_code}">{$office.office_address}. Расписание: {$office.WorkSchedule}</div>
+        </div>
+      {/if}{/foreach}
+    {else}
+      <select name="axiomus_pvzdpd" style="max-width:500px;">
+      {foreach $offices_dpd as $office}{if $city|lower==$office.city_name|lower}
+          <option value="{$office.office_code}" {if $piter_pvz_default==$office.office_code}selected{/if}> 
+            {$office.office_name}. {$office.office_address}
+          </option>
+      {/if}{/foreach}
+      </select>
+      <div style="display:none;">
+      {foreach $offices_dpd as $office}{if $city|lower==$office.city_name|lower}
+        <div style="margin-left:17px;font-size:12px;" id="axiomus_pvzdpd_info_{$office.office_code}">{$office.office_address}. Расписание: {$office.WorkSchedule}</div>
+      {/if}{/foreach}
+      </div>
+    {/if}
+  {/if}
+</div>
+{/if}
+
+  <div style="margin-bottom:10px;">Дата доставки: <input type="text" id="axiomus_date" value="{$now}" size="10" /><a href="javascript:void(0)"><i class="icon16 calendar"></i></a> &nbsp; с <input type="text" id="axiomus_from_time" value="10:00" size="5" /> до <input type="text" id="axiomus_to_time" value="15:00" size="5" /></div>
+
+  <div style="margin-bottom:10px;" class="to_courier to_post"><label><input type="checkbox" id="axiomus_sms" value="1" {if $sms}checked{/if}/> 
+    SMS-уведомление покупателя (отключите в случае ошибки с телефоном).<br />
+    <small style="font-size:12px;color:gray;">Номер будет считаться допустимым, если он начинается с 79, исключая номера, начинающиеся с 7940)</small></label>
+  </div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post to_dpd"><label><input type="checkbox" id="axiomus_valuation" value="1" {if $valuation=='yes'}checked{/if} /> 
+    Объявленная стоимость</label></div>
+
+  <div style="margin-bottom:10px;" class="to_courier to_self to_post to_dpd"><label><input type="checkbox" id="axiomus_cash" value="1" {if $cash=='yes'}checked{/if} /> 
+    Наложенный платеж</label></div>
+
+  <div style="margin-bottom:10px;" class="to_courier"><label><input type="checkbox" id="axiomus_card" value="1" {if $card=='yes'}checked{/if} /> 
+    Оплата картой</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post"><label><input type="checkbox" id="axiomus_post_tarif" value="1" {if $post_tarif=='yes'}checked{/if} /> 
+    Наложенный платеж + почтовый тариф</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post to_dpd"><label><input type="checkbox" id="axiomus_fragile" value="1" {if $fragile=='yes'}checked{/if} /> 
+    Осторожно! (только для тарифа "Посылка")</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post"><label><input type="checkbox" id="axiomus_optimize" value="1" {if $optimize=='yes'}checked{/if} /> 
+    Оптимизатор тарифа</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post"><label><input type="checkbox" id="axiomus_class1" value="1" {if $class1=='yes'}checked{/if} /> 
+    Строгий тип соответствия</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post to_dpd"><label><input type="checkbox" id="axiomus_big" value="1" {if $big=='yes'}checked{/if} /> 
+    Большегруз</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_post"><label><input type="checkbox" id="axiomus_insurance" value="1" {if $insurance=='yes'}checked{/if} /> 
+    Расширенное страхование</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_self"><label><input type="checkbox" id="axiomus_checkup" value="1" /> 
+    Проверка заказа при вручении клиенту</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_self"><label><input type="checkbox" id="axiomus_partreturn" value="1" /> 
+    Частичный отказ клиентом</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_dpd"><label><input type="checkbox" id="axiomus_waiting" value="1" /> 
+    Ожидание 20 минут</label></div>
+
+  <div style="margin-bottom:10px;display:none;" class="to_dpd_courier">
+    Улица: <input type="text" id="axiomus_dpd_street" value="{$order.params['shipping_address.street']|escape:'html'}" size="50" />
+    дом: <input type="text" id="axiomus_dpd_house" value="{if $order.params.shipping_house}{$order.params.shipping_house}{/if}" size="5" />
+    строение: <input type="text" id="axiomus_dpd_building" value="{if $order.params.shipping_building}{$order.params.shipping_building}{/if}" size="5" />
+    квартира: <input type="text" id="axiomus_dpd_apartment" value="{if isset($order.params.shipping_apartment)}{$order.params.shipping_apartment}{/if}" size="5" />
+    <br /><small style="font-size:10px;color:gray;">Внимание! Для корректной выгрузки заказа необходимо правильно разнести адрес покупателя по данным полям адреса!</small>
+  </div>
+
+<input type="button" value="Отправить!" onclick="var axi = axiomusOrdersPlugin(); axi.send();" />
+<i class="icon16 loading" id="axiomusSendIcon" style="display:none;"></i>
+</div>
+
+<div id="axiomusResultID" style="display:none;"></div>
+{/if}
+</div>
+
+{literal}
+<script type="text/javascript">
+
+function axiomusOrdersPlugin(){
+
+  var checkSelf = function(){
+    if($('input[name="axiomus_shipping_type"]:checked').val() == 'self'){
+      $('#pvz_list').slideDown();
+      $('#pvzdpd_list').slideUp();
+      $('.to_courier,.to_post,.to_dpd,.to_dpd_courier').hide();
+      $('.to_self').show();
+    } else if($('input[name="axiomus_shipping_type"]:checked').val() == 'courier') {
+      $('#pvz_list').slideUp();
+      $('#pvzdpd_list').slideUp();
+      $('.to_self,.to_post,.to_dpd,.to_dpd_courier').hide();
+      $('.to_courier').show();
+    } else if($('input[name="axiomus_shipping_type"]:checked').val() == 'post') {
+      $('#pvz_list').slideUp();
+      $('#pvzdpd_list').slideUp();
+      $('.to_courier,.to_self,.to_dpd,.to_dpd_courier').hide();
+      $('.to_post').show();
+    } else if($('input[name="axiomus_shipping_type"]:checked').val() == 'dpd') {
+      $('#pvz_list').slideUp();
+      $('#pvzdpd_list').slideDown();
+      $('.to_courier,.to_self,.to_post,.to_dpd_courier').hide();
+      $('.to_dpd').show();
+    } else if($('input[name="axiomus_shipping_type"]:checked').val() == 'dpd_courier') {
+      $('#pvz_list').slideUp();
+      $('#pvzdpd_list').slideUp();
+      $('.to_courier,.to_self,.to_post').hide();
+      $('.to_dpd,.to_dpd_courier').show();
+    }
+  };
+
+  var send = function(){
+   $('#axiomusResultID').html('');
+
+    var shipping_type = $('input[name="axiomus_shipping_type"]:checked').val();
+
+   {/literal}{if !$pvz_select}
+   var office_code = $('input[name="axiomus_pvz'+(shipping_type=='dpd'?'dpd':'')+'"]:checked').val();
+   {else}
+   var office_code = $('select[name="axiomus_pvz'+(shipping_type=='dpd'?'dpd':'')+'"]').val();
+   {/if}{literal}
+
+   $('#axiomusSendIcon').show();
+   $.getJSON('?plugin=axiomusorders&action=send', { 
+              'orderID': {/literal}{$order.id}{literal}, 
+              'axiomus_date': $('#axiomus_date').val(), 
+              'axiomus_from_time': $('#axiomus_from_time').val(),
+              'axiomus_to_time': $('#axiomus_to_time').val(),
+              'shipping_type': $('input[name="axiomus_shipping_type"]:checked').val(),
+              'office_code': office_code,
+              'office_info': $('#axiomus_pvz'+(shipping_type=='dpd'?'dpd':'')+'_info_'+office_code).html(),
+              'sms': $('#axiomus_sms').prop('checked')?1:0,
+
+              'valuation': $('#axiomus_valuation').prop('checked')?1:0,
+              'cash': $('#axiomus_cash').prop('checked')?1:0,
+              'card': $('#axiomus_card').prop('checked')?1:0,
+              'post_tarif': $('#axiomus_post_tarif').prop('checked')?1:0,
+              'fragile': $('#axiomus_fragile').prop('checked')?1:0,
+              'optimize': $('#axiomus_optimize').prop('checked')?1:0,
+              'class1': $('#axiomus_class1').prop('checked')?1:0,
+              'big': $('#axiomus_big').prop('checked')?1:0,
+              'insurance': $('#axiomus_insurance').prop('checked')?1:0,
+              'checkup': $('#axiomus_checkup').prop('checked')?1:0,
+              'part_return': $('#axiomus_partreturn').prop('checked')?1:0,
+              'waiting': $('#axiomus_waiting').prop('checked')?1:0,
+
+              'dpd_street': $('#axiomus_dpd_street').val(),
+              'dpd_house': $('#axiomus_dpd_house').val(),
+              'dpd_building': $('#axiomus_dpd_building').val(),
+              'dpd_apartmen': $('#axiomus_dpd_apartment').val()
+
+            }, function(r) {
+      if (r.status == 'ok') {
+         if(r.data.status=='ok'){
+            $('#axiomusSendIcon').hide();
+            $('#axiomusFormID').hide();
+            $('#axiomusResultID').css('color','black').show().html('Номер заказа Axiomus: '+r.data.axiomusResultID);
+         } else {
+            $('#axiomusSendIcon').hide();
+            $('#axiomusResultID').css('color','red').show().html('Ошибка: '+r.data.error);
+         }
+      } else if (console) {
+         if (r.errors) {
+            console.error(r.errors);
+         } else if (r) {
+            console.error(r);
+         }
+      }
+   });
+  };
+
+  var status = function(){
+   $.getJSON('?plugin=axiomusorders&action=status', { 
+              'orderID': {/literal}{$order.id}{literal}
+            }, function(r) {
+      if (r.status == 'ok') {
+         if(r.data.status=='ok'){
+            $('#axiomusStatusIcon').hide();
+            $('#axiomusStatus').css('color','green').html(r.data.statusString);
+         } else {
+            $('#axiomusStatusIcon').hide();
+            $('#axiomusStatus').css('color','red').show().html('Ошибка: '+r.data.error);
+         }
+      } else if (console) {
+         if (r.errors) {
+            console.error(r.errors);
+         } else if (r) {
+            console.error(r);
+         }
+      }
+   });
+  };
+
+  var hide = function(){
+   $('#axiomusID').hide();
+   $.getJSON('?plugin=axiomusorders&action=hide', { 
+              'orderID': {/literal}{$order.id}{literal}
+            }, function(r) {
+      if (r.status == 'ok') {
+      } else if (console) {
+         if (r.errors) {
+            console.error(r.errors);
+         } else if (r) {
+            console.error(r);
+         }
+      }
+   });
+  };
+
+  return {
+    "checkSelf": checkSelf,
+    "send": send,
+    "status": status,
+    "hide": hide
+  };
+}
+
+$( document ).ready(function(){
+
+   $('#axiomusID').detach().insertBefore('#s-order-items'){/literal}{if !$show_form_on_button || $order.axiomus_orderID}.show(){/if}{literal};
+
+  {/literal}{if !$order.axiomus_orderID}{literal}
+    // Datepicker
+    var datetime_input = $('#axiomus_date');
+    datetime_input.datepicker({
+        'dateFormat': 'yy-mm-dd'
+    });
+    datetime_input.next('a').click(function() {
+        $('#axiomus_date').datepicker('show');
+    });
+    // widget appears in bottom left corner for some reason, so we hide it
+    datetime_input.datepicker('widget').hide();
+
+    {/literal}{if $show_form_on_button}
+      $('<input class="js-printable-docs_" type="button" onclick="$(\'#axiomusID\').show();$(this).hide();return false;" value="Выгрузка в Axiomus" />').insertBefore('.float-right.s-order-aux .js-printable-docs:first');
+    {/if}{literal}
+
+  {/literal}{else}{literal}
+      var axi = axiomusOrdersPlugin(); axi.status();
+  {/literal}{/if}{literal}
+
+   $('input[name="axiomus_shipping_type"]:first').attr('checked', true);
+
+   if(!$('input[name="axiomus_pvz"]:checked').length)
+     $('input[name="axiomus_pvz"]:first').attr('checked', true);
+
+   var axi = axiomusOrdersPlugin();
+   axi.checkSelf();
+});
+
+
+</script>
+{/literal}

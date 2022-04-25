@@ -6,7 +6,7 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
   public function execute(){
 
       $app_settings_model = new waAppSettingsModel();
-      $key = array('shop', 'axiomusorders');
+      $key = ['shop', 'axiomusorders'];
 
       $uid = $app_settings_model->get($key, 'uid');
       $ukey = $app_settings_model->get($key, 'ukey');
@@ -67,10 +67,11 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
 
       if($order['axiomus_orderID']!=''){
 
-        $this->response = array(
-                                  'status' => 'ok',
-                                  'axiomusResultID' => $order['axiomus_orderID'],
-                          );
+        $this->response = [
+          'status' => 'ok',
+          'axiomusResultID' => $order['axiomus_orderID'],
+        ];
+
         return;
       }
 
@@ -80,15 +81,15 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
       $order['items'] = $order_items_model->getByField('order_id', $orderID, true);
 
       // get items weight
-      $items = array();
-      $product_ids = array();
+      $items = [];
+      $product_ids = [];
       foreach ($order['items'] as $item_id => $item) {
         if ($item['type'] == 'product') {
-           $items[$item['id']] = array(
-                  'product_id' => $item['product_id'],
-                  'sku_id' => $item['sku_id'],
-                  'quantity' => $item['quantity']
-           );
+           $items[$item['id']] = [
+             'product_id' => $item['product_id'],
+             'sku_id' => $item['sku_id'],
+             'quantity' => $item['quantity']
+           ];
            $product_ids[] = $item['product_id'];
         }
       }
@@ -99,7 +100,7 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
         $product_features_model = new shopProductFeaturesModel();
         $sql = "SELECT product_id, sku_id, feature_value_id FROM ".$product_features_model->getTableName()."
                 WHERE feature_id = i:0 AND product_id IN (i:1)";
-        $product_values = $sku_values = array();
+        $product_values = $sku_values = [];
         $rows = $product_features_model->query($sql, $f['id'], array_unique($product_ids))->fetchAll();
         if ($rows) {
           foreach ($rows as $row) {
@@ -141,14 +142,14 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
       $order['customer'] = $contact_model->getByField('id', $order['contact_id']);
 
       // Customer info
-      $main_contact_info = array();
-      foreach (array('email', 'phone', 'im') as $f) {
+      $main_contact_info = [];
+      foreach (['email', 'phone', 'im'] as $f) {
           if ( ( $v = $customer_contact->get($f, 'top,html'))) {
-              $main_contact_info[] = array(
-                  'id' => $f,
-                  'name' => waContactFields::get($f)->getName(),
-                  'value' => is_array($v) ? implode(', ', $v) : $v,
-              );
+              $main_contact_info[] = [
+                'id' => $f,
+                'name' => waContactFields::get($f)->getName(),
+                'value' => is_array($v) ? implode(', ', $v) : $v,
+              ];
           }
       }
       $order['customer']['info'] = $main_contact_info;
@@ -369,10 +370,11 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
 
       if($curlRes['error']!=''){
 
-        $this->response = array(
-                                'status' => 'error',
-                                'error' => $curlRes['error'],
-                          );
+        $this->response = [
+          'status' => 'error',
+          'error' => $curlRes['error'],
+        ];
+
         return false;
 
       } elseif(!$result){
@@ -382,18 +384,20 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
           $xmlError .= "<br />".$error->message;
         }
 
-        $this->response = array(
-                                'status' => 'error',
-                                'error' => $xmlError,
-                          );
+        $this->response = [
+          'status' => 'error',
+          'error' => $xmlError,
+        ];
+
         return false;
 
       } elseif((isset($result->status) && !isset($result->auth)) || !strstr($curlRes['result'], 'code="0"')){
 
-        $this->response = array(
-                                'status' => 'error',
-                                'error' => (string)$result->status,
-                          );
+        $this->response = [
+          'status' => 'error',
+          'error' => (string)$result->status,
+        ];
+
         return false;
 
       }
@@ -402,23 +406,27 @@ class shopAxiomusordersPluginBackendSendController extends waJsonController
       preg_match_all('/objectid="(.*)">/i', $curlRes['result'], $out);
       $axiomus_orderID = $out[1][0];
 
-      $order_model->updateById($orderID, array('axiomus_orderID' => $out[1][0], 'axiomus_okey' => (string)$result->auth));
+      $order_model->updateById($orderID, [
+        'axiomus_orderID' => $out[1][0], 
+        'axiomus_okey' => (string)$result->auth
+      ]);
 
       // add log to order history
       $order = $order_model->getById($orderID);
       $order_log_model = new shopOrderLogModel();
-      $order_log_model->add(array(
-                                     'order_id' => $orderID,
-                                     'action_id' => '',
-                                     'text' => 'Заказ был успешно выгружен в Axiomus, номер: '.$axiomus_orderID.($shipping_type=='self'?', пункт самовывоза: '.$office_info:''),
-                                     'before_state_id' => $order['state_id'],
-                                     'after_state_id' => $order['state_id'],
-                            ));
+      $order_log_model->add([
+        'order_id' => $orderID,
+        'action_id' => '',
+        'text' => 'Заказ был успешно выгружен в Axiomus, номер: '.$axiomus_orderID.($shipping_type=='self'?', пункт самовывоза: '.$office_info:''),
+        'before_state_id' => $order['state_id'],
+        'after_state_id' => $order['state_id'],
+      ]);
 
-      $this->response = array(
-                              'status' => 'ok',
-                              'axiomusResultID' => $axiomus_orderID,
-                        );
+      $this->response = [
+        'status' => 'ok',
+        'axiomusResultID' => $axiomus_orderID,
+      ];
+
       return;
   }
 
